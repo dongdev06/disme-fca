@@ -14,16 +14,16 @@ See [below](#projects-using-this-api) for projects using this API.
 See the [full changelog](/CHANGELOG.md) for release details.
 
 ## Install
-If you just want to use fca-disme, you should use this command:
+If you just want to use @dongdev/disme-fca, you should use this command:
 ```bash
 npm install fca-disme
 ```
-It will download `fca-disme` from NPM repositories
+It will download `@dongdev/disme-fca` from NPM repositories
 
 ### Bleeding edge
 If you want to use bleeding edge (directly from github) to test new features or submit bug report, this is the command for you:
 ```bash
-npm install fca-disme
+npm install @dongdev/disme-fca
 ```
 
 ## Testing your bots
@@ -31,7 +31,7 @@ If you want to test your bots without creating another account on Facebook, you 
 
 ## Example Usage
 ```javascript
-const login = require("fca-disme");
+const login = require("@dongdev/disme-fca");
 
 // Create simple echo bot
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
@@ -70,7 +70,7 @@ __Tip__: to find your own ID, you can look inside the cookies. The `userID` is u
 
 __Example (Basic Message)__
 ```js
-const login = require("fca-disme");
+const login = require("@dongdev/disme-fca");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -83,7 +83,7 @@ login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
 
 __Example (File upload)__
 ```js
-const login = require("fca-disme");
+const login = require("@dongdev/disme-fca");
 
 login({email: "FB_EMAIL", password: "FB_PASSWORD"}, (err, api) => {
     if(err) return console.error(err);
@@ -107,7 +107,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-disme");
+const login = require("@dongdev/disme-fca");
 
 var credentials = {email: "FB_EMAIL", password: "FB_PASSWORD"};
 
@@ -131,7 +131,7 @@ __Example__
 
 ```js
 const fs = require("fs");
-const login = require("fca-disme");
+const login = require("@dongdev/disme-fca");
 
 // Simple echo bot. It will repeat everything that you say.
 // Will stop when you say '/stop'

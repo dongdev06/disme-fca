@@ -1,7 +1,7 @@
 {
-  "name": "fca-disme",
+  "name": "@dongdev/disme-fca",
   "version": "0.0.1",
-  "description": "A Facebook chat API that doesn't rely on XMPP. Phục hồi và phát triển by DongDev",
+  "description": "A Facebook chat API that doesn't rely on XMPP. Will NOT be deprecated after April 30th 2015.",
   "main": "index.js",
   "scripts": {
     "lint": "eslint **.js",
@@ -12,12 +12,12 @@
     "type": "git",
     "url": "https://github.com/Schmavery/facebook-chat-api.git"
   },
-  "author": "Avery, David, Maude, Benjamin, UIRI",
+  "author": "Avery, David, Maude, Benjamin, UIRI, DongDev",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/dongdev06/fca-disme/issues"
+    "url": "https://github.com/dongdev06/disme-fca/issues"
   },
-  "homepage": "https://github.com/Schmavery/facebook-chat-api#readme",
+  "homepage": "https://github.com/dongdev06/disme-fca#readme",
   "keywords": [
     "facebook",
     "chat",
@@ -28,7 +28,7 @@
     "bluebird": "^2.11.0",
     "cheerio": "^1.0.0-rc.10",
     "https-proxy-agent": "^4.0.0",
-    "mqtt": "^4.2.8",
+    "mqtt": "^4.3.8",
     "npmlog": "^1.2.0",
     "request": "^2.88.2",
     "websocket-stream": "^5.5.0"

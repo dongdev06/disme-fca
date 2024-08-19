@@ -16,7 +16,7 @@ See the [full changelog](/CHANGELOG.md) for release details.
 ## Install
 If you just want to use @dongdev/disme-fca, you should use this command:
 ```bash
-npm install fca-disme
+npm install @dongdev/disme-fca
 ```
 It will download `@dongdev/disme-fca` from NPM repositories
 

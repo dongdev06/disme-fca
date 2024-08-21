@@ -10,7 +10,6 @@ function formatEventReminders(reminder) {
     time: reminder.time,
     eventType: reminder.lightweight_event_type.toLowerCase(),
     locationName: reminder.location_name,
-    // @TODO verify this
     locationCoordinates: reminder.location_coordinates,
     locationPage: reminder.location_page,
     eventStatus: reminder.lightweight_event_status.toLowerCase(),
@@ -34,7 +33,6 @@ function formatThreadGraphQLResponse(data) {
   var messageThread = data.o0.data.message_thread;
   var threadID = messageThread.thread_key.thread_fbid ? messageThread.thread_key.thread_fbid : messageThread.thread_key.other_user_id;
 
-  // Remove me
   var lastM = messageThread.last_message;
   var snippetID = lastM && lastM.nodes && lastM.nodes[0] && lastM.nodes[0].message_sender && lastM.nodes[0].message_sender.messaging_actor ? lastM.nodes[0].message_sender.messaging_actor.id : null;
   var snippetText = lastM && lastM.nodes && lastM.nodes[0] ? lastM.nodes[0].snippet : null;
@@ -55,7 +53,7 @@ function formatThreadGraphQLResponse(data) {
       gender: d.node.messaging_actor.gender,
       type: d.node.messaging_actor.__typename,
       isFriend: d.node.messaging_actor.is_viewer_friend,
-      isBirthday: !!d.node.messaging_actor.is_birthday //not sure?
+      isBirthday: !!d.node.messaging_actor.is_birthday
     })),
     unreadCount: messageThread.unread_count,
     messageCount: messageThread.messages_count,
@@ -83,16 +81,14 @@ function formatThreadGraphQLResponse(data) {
       inviterID: a.inviter.id,
       requesterID: a.requester.id,
       timestamp: a.request_timestamp,
-      request_source: a.request_source // @Undocumented
+      request_source: a.request_source
     })),
 
-    // @Undocumented
     reactionsMuteMode: messageThread.reactions_mute_mode.toLowerCase(),
     mentionsMuteMode: messageThread.mentions_mute_mode.toLowerCase(),
     isPinProtected: messageThread.is_pin_protected,
     relatedPageThread: messageThread.related_page_thread,
 
-    // @Legacy
     name: messageThread.name,
     snippet: snippetText,
     snippetSender: snippetID,
@@ -119,75 +115,81 @@ module.exports = function (defaultFuncs, api, ctx) {
     var threadData = require('./data/getThreadInfo.json');
 
     var threadJson = path.resolve(__dirname, 'data', 'getThreadInfo.json');
-    if(threadData.some(i => i.data.threadID == threadID)) {
+    const tenMinutes = 10 * 60; // 10 minutes in seconds
+
+    // Clear out expired data
+    threadData = threadData.filter(thread => ((Date.now() - thread.time) / 1000).toFixed() < tenMinutes);
+
+    if (threadData.some(i => i.data.threadID == threadID)) {
       var thread = threadData.find(i => i.data.threadID == threadID);
-      if(((Date.now() - thread.time)/1000).toFixed() >= 60 * 60 * 2) {
+
+      // Check if data is older than 10 minutes
+      if (((Date.now() - thread.time) / 1000).toFixed() >= tenMinutes) {
+        log.info("ThreadInfo", `Update data thread ${threadID}`);
         const index = threadData.findIndex(i => i.data.threadID == threadID);
         threadData.splice(index, 1);
-        setTimeout(function() {
-          writeFileSync(threadJson, JSON.stringify(threadData, null, 4));
-        }, 2000);
+      } else {
+        return thread.data;
       }
-      return thread.data
+    } else {
+      log.info("ThreadInfo", `Create data thread ${threadID}`);
     }
-    else {
-      var resolveFunc = function () { };
-      var rejectFunc = function () { };
-      var returnPromise = new Promise(function (resolve, reject) {
-        resolveFunc = resolve;
-        rejectFunc = reject;
+
+    // Fetch new data
+    var resolveFunc = function () { };
+    var rejectFunc = function () { };
+    var returnPromise = new Promise(function (resolve, reject) {
+      resolveFunc = resolve;
+      rejectFunc = reject;
+    });
+
+    if (utils.getType(callback) != "Function" && utils.getType(callback) != "AsyncFunction") {
+      callback = function (err, data) {
+        if (err) return rejectFunc(err);
+        resolveFunc(data);
+      };
+    }
+
+    var form = {
+      queries: JSON.stringify({
+        o0: {
+          doc_id: "3449967031715030",
+          query_params: {
+            id: threadID,
+            message_limit: 0,
+            load_messages: false,
+            load_read_receipts: false,
+            before: null
+          }
+        }
+      }),
+      batch_name: "MessengerGraphQLThreadFetcher"
+    };
+
+    defaultFuncs
+      .post("https://www.facebook.com/api/graphqlbatch/", ctx.jar, form)
+      .then(utils.parseAndCheckLogin(ctx, defaultFuncs))
+      .then(function (resData) {
+        if (resData.error) throw resData;
+        if (resData[resData.length - 1].error_results !== 0) {
+          log.error("getThreadInfoGraphQL", "Error fetching thread info", resData);
+          throw new Error("Failed to fetch thread info");
+        }
+
+        const formattedData = formatThreadGraphQLResponse(resData[0]);
+        log.info("ThreadInfo", `Update data thread ${threadID}`);
+        threadData.push({
+          data: formattedData,
+          time: Date.now()
+        });
+        writeFileSync(threadJson, JSON.stringify(threadData, null, 4));
+        callback(null, formattedData);
+      })
+      .catch(function (err) {
+        log.error("getThreadInfoGraphQL", err);
+        return callback(err);
       });
 
-      if (utils.getType(callback) != "Function" && utils.getType(callback) != "AsyncFunction") {
-        callback = function (err, data) {
-          if (err) return rejectFunc(err);
-          resolveFunc(data);
-        };
-      }
-
-      // `queries` has to be a string. I couldn't tell from the dev console. This
-      // took me a really long time to figure out. I deserve a cookie for this.
-      var form = {
-        queries: JSON.stringify({
-          o0: {
-            // This doc_id is valid as of July 20th, 2020
-            doc_id: "3449967031715030",
-            query_params: {
-              id: threadID,
-              message_limit: 0,
-              load_messages: false,
-              load_read_receipts: false,
-              before: null
-            }
-          }
-        }),
-        batch_name: "MessengerGraphQLThreadFetcher"
-      };
-
-      defaultFuncs
-        .post("https://www.facebook.com/api/graphqlbatch/", ctx.jar, form)
-        .then(utils.parseAndCheckLogin(ctx, defaultFuncs))
-        .then(function (resData) {
-          if (resData.error) throw resData;
-          // This returns us an array of things. The last one is the success /
-          // failure one.
-          // @TODO What do we do in this case?
-          if (resData[resData.length - 1].error_results !== 0) {
-            console.log(resData); //Log more info
-            throw new Error("well darn there was an error_result");
-          }
-          threadData.push({
-            data: formatThreadGraphQLResponse(resData[0]),
-            time: Date.now()
-          })
-          writeFileSync(threadJson, JSON.stringify(threadData, null, 4));
-          callback(null, formatThreadGraphQLResponse(resData[0]));
-        })
-        .catch(function (err) {
-          log.error("getThreadInfoGraphQL", err);
-          return callback(err);
-        });
-      return returnPromise;
-    };
-  }
+    return returnPromise;
+  };
 };

@@ -41,52 +41,62 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
     var chatOn = ctx.globalOptions.online;
     var foreground = false;
 
-    var sessionID = Math.floor(Math.random() * 9007199254740991) + 1;
-    var username = {
-        u: ctx.userID,
-        s: sessionID,
-        chat_on: chatOn,
-        fg: foreground,
-        d: utils.getGUID(),
-        ct: "websocket",
-        //App id from facebook
-        aid: "219994525426954",
-        mqtt_sid: "",
-        cp: 3,
-        ecp: 10,
-        st: [],
-        pm: [],
-        dc: "",
-        no_auto_fg: true,
-        gas: null,
-        pack: []
+    const sessionID = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + 1;
+    const GUID = utils.getGUID()
+    const username = {
+      u: ctx.userID,
+      s: sessionID,
+      chat_on: chatOn,
+      fg: foreground,
+      d: GUID,
+      ct: 'websocket',
+      aid: '219994525426954',
+      aids: null,
+      mqtt_sid: '',
+      cp: 3,
+      ecp: 10,
+      st: [],
+      pm: [],
+      dc: '',
+      no_auto_fg: true,
+      gas: null,
+      pack: [],
+      p: null,
+      php_override: ""
     };
-    var cookies = ctx.jar.getCookies("https://www.facebook.com").join("; ");
-
-    var host;
-    if (ctx.mqttEndpoint) host = `${ctx.mqttEndpoint}&sid=${sessionID}`;
-    else if (ctx.region) host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}`;
-    else host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}`;
-
-    var options = {
-        clientId: "mqttwsclient",
-        protocolId: 'MQIsdp',
-        protocolVersion: 3,
-        username: JSON.stringify(username),
-        clean: true,
-        wsOptions: {
-            headers: {
-                'Cookie': cookies,
-                'Origin': 'https://www.facebook.com',
-                'User-Agent': ctx.globalOptions.userAgent,
-                'Referer': 'https://www.facebook.com/',
-                'Host': new URL(host).hostname //'edge-chat.facebook.com'
-            },
-            origin: 'https://www.facebook.com',
-            protocolVersion: 13
+  
+    const cookies = ctx.jar.getCookies('https://www.facebook.com').join('; ');
+  
+    let host;
+    if (ctx.mqttEndpoint) {
+      host = `${ctx.mqttEndpoint}&sid=${sessionID}&cid=${GUID}`;
+    } else if (ctx.region) {
+      host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLowerCase()}&sid=${sessionID}&cid=${GUID}`;
+    } else {
+      host = `wss://edge-chat.facebook.com/chat?sid=${sessionID}&cid=${GUID}`;
+    }
+  
+    const options = {
+      clientId: 'mqttwsclient',
+      protocolId: 'MQIsdp',
+      protocolVersion: 3,
+      username: JSON.stringify(username),
+      clean: true,
+      wsOptions: {
+        headers: {
+          Cookie: cookies,
+          Origin: 'https://www.facebook.com',
+          'User-Agent': ctx.globalOptions.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36',
+          Referer: 'https://www.facebook.com/',
+          Host: new URL(host).hostname,
         },
-        keepalive: 10,
-        reschedulePings: false
+        origin: 'https://www.facebook.com',
+        protocolVersion: 13,
+        binaryType: 'arraybuffer',
+      },
+      keepalive: 60,
+      reschedulePings: true,
+      reconnectPeriod: 3,
     };
 
     if (typeof ctx.globalOptions.proxy != "undefined") {

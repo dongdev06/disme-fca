@@ -76,16 +76,22 @@ function setOptions(globalOptions, options) {
 }
 
 function buildAPI(globalOptions, html, jar) {
-    var maybeCookie = jar.getCookies("https://www.facebook.com").filter(function(val) {
-        return val.cookieString().split("=")[0] === "c_user";
-    });
-
-    if (maybeCookie.length === 0) throw { error: "Error retrieving userID. This can be caused by a lot of things, including getting blocked by Facebook for logging in from an unknown location. Try logging in with a browser to verify." };
-
-    if (html.indexOf("/checkpoint/block/?next") > -1) log.warn("login", "Checkpoint detected. Please log in with a browser to verify.");
-
-    var userID = maybeCookie[0].cookieString().split("=")[1].toString();
-    
+    var userID;
+  var cookie = jar.getCookies("https://www.facebook.com");
+  var maybeUser = cookie.filter(function(val) { return val.cookieString().split("=")[0] === "c_user"; });
+  var maybeTiktik = cookie.filter(function(val) { return val.cookieString().split("=")[0] === "i_user"; });
+  if (maybeUser.length === 0 && maybeTiktik.length === 0) {
+      return logger("Không tìm thấy cookie cho người dùng, vui lòng kiểm tra lại thông tin đăng nhập", 'error');
+  } else {
+      if (html.indexOf("/checkpoint/block/?next") > -1) {
+           return logger("Appstate die, vui lòng thay cái mới!", 'error');
+      }
+      if (maybeTiktik[0] && maybeTiktik[0].cookieString().includes('i_user')) {
+           userID = maybeTiktik[0].cookieString().split("=")[1].toString();
+      } else {
+           userID = maybeUser[0].cookieString().split("=")[1].toString();
+         }
+      }
 
     try {
         clearInterval(checkVerified);
@@ -437,6 +443,7 @@ function loginHelper(appState, email, password, globalOptions, callback, prCallb
                 return utils.get('https://www.facebook.com/', jar, null, globalOptions).then(utils.saveCookies(jar));
             });
     }
+    let redirect = [1, "https://m.facebook.com/"], bypass_region_err = false, ctx, _defaultFuncs, api;
     function CheckAndFixErr(res) {
         let reg_antierr = /This browser is not supported/gs; // =))))))
         if (reg_antierr.test(res.body)) {
@@ -460,14 +467,6 @@ function loginHelper(appState, email, password, globalOptions, callback, prCallb
             if (redirect && redirect[1]) return utils.get(redirect[1], jar, null, globalOptions).then(utils.saveCookies(jar));
         return res;
     }
-
-    var ctx = null;
-    var _defaultFuncs = null;
-    var api = null;
-
-    let redirect = [1, "https://m.facebook.com/"];
-    let bypass_region_err = false;
-        var ctx,api;
             mainPromise = mainPromise
                 .then(res => Redirect(res))
                 .then(res => CheckAndFixErr(res))

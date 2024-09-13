@@ -81,10 +81,10 @@ function buildAPI(globalOptions, html, jar) {
   var maybeUser = cookie.filter(function(val) { return val.cookieString().split("=")[0] === "c_user"; });
   var maybeTiktik = cookie.filter(function(val) { return val.cookieString().split("=")[0] === "i_user"; });
   if (maybeUser.length === 0 && maybeTiktik.length === 0) {
-      return logger("Không tìm thấy cookie cho người dùng, vui lòng kiểm tra lại thông tin đăng nhập", 'error');
+      return log.error('login', "Không tìm thấy cookie cho người dùng, vui lòng kiểm tra lại thông tin đăng nhập", 'error');
   } else {
       if (html.indexOf("/checkpoint/block/?next") > -1) {
-           return logger("Appstate die, vui lòng thay cái mới!", 'error');
+           return log.error('login', "Appstate die, vui lòng thay cái mới!", 'error');
       }
       if (maybeTiktik[0] && maybeTiktik[0].cookieString().includes('i_user')) {
            userID = maybeTiktik[0].cookieString().split("=")[1].toString();
